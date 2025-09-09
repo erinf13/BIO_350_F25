@@ -10,3 +10,9 @@ IC Assignment 2: Chapter 2 of Ecology Handbook
  -  confusion and technical difficulties
  -  introduced matplotlib and plotting on x y axis
  -  graph was blank at first but somehow managed to get data to show up 
+
+IC Example 1 : log and conditional elements
+ - turned graph from assignment 2 into a log 
+ - created if, if else, and else conditions 
+ - created more graphs changing the algoritm
+  
