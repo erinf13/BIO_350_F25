@@ -15,4 +15,9 @@ IC Example 1 : log and conditional elements
  - turned graph from assignment 2 into a log 
  - created if, if else, and else conditions 
  - created more graphs changing the algoritm
-  
+
+IC Assignment 3: Chapter 3 of Ecology Handbook
+ - logistic growth model
+ - understand and define variables before coding ; type out parameters in markdown to ease process
+ - make sure to add correct spaces/symbols in code and make sure the names of the variables are        consistent throughout
+ 
