@@ -19,5 +19,11 @@ IC Example 1 : log and conditional elements
 IC Assignment 3: Chapter 3 of Ecology Handbook
  - logistic growth model
  - understand and define variables before coding ; type out parameters in markdown to ease process
- - make sure to add correct spaces/symbols in code and make sure the names of the variables are        consistent throughout
+ - make sure to add correct spaces/symbols in code and make sure the names of the variables are consistent throughout
+
+IC Example 2 : importing data and messing with inline copilot chat
+ - imported our own data file and saving it in the right place (BIO 350 file)
+ - utilized previous code for plots
+ - relied on Copilot to generate code based on what I told it to do and how I wanted the plot to look
+ - used average function to determine carrying capactiy and further used Copilot to display it on the graph
  
