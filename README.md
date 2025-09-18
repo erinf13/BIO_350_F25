@@ -26,4 +26,10 @@ IC Example 2 : importing data and messing with inline copilot chat
  - utilized previous code for plots
  - relied on Copilot to generate code based on what I told it to do and how I wanted the plot to look
  - used average function to determine carrying capactiy and further used Copilot to display it on the graph
- 
+
+IC Assignment 4: Chapter 4 of Ecology Handbook
+ - logistic growth with two species competing
+ - understand and define variables before coding ; type out parameters in markdown to ease process
+ - ensure variables are defined consistently throughout the code
+ - used copilot to understand the competitive exclusion principle and how it relates to the equations
+ - don't overuse copilot, try to understand the code yourself first
