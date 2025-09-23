@@ -33,3 +33,9 @@ IC Assignment 4: Chapter 4 of Ecology Handbook
  - ensure variables are defined consistently throughout the code
  - used copilot to understand the competitive exclusion principle and how it relates to the equations
  - don't overuse copilot, try to understand the code yourself first
+
+IC In-Class Example 3: Modifying the two-species competition model
+ - modified the two-species competition model to include an external event that increases the population of one species at a specific time point
+    - understand and define variables before coding ; type out parameters in markdown to ease process
+    - ensure variables are defined consistently throughout the code
+    
