@@ -39,3 +39,9 @@ IC In-Class Example 3: Modifying the two-species competition model
     - understand and define variables before coding ; type out parameters in markdown to ease process
     - ensure variables are defined consistently throughout the code
     
+IC Assignment 5: Rabies Removal - SIR Models
+ - SIR model to simulate the spread of rabies in a fox population
+ - understand and define variables before coding ; type out parameters in markdown to ease process
+ - ensure variables are defined consistently throughout the code
+ - used copilot to help generate the SIR model function and plotting code
+ - got tripped up on indentation and variable names, need to be careful with these details ; don't rush through the code
