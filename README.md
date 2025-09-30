@@ -45,3 +45,10 @@ IC Assignment 5: Rabies Removal - SIR Models
  - ensure variables are defined consistently throughout the code
  - used copilot to help generate the SIR model function and plotting code
  - got tripped up on indentation and variable names, need to be careful with these details ; don't rush through the code
+
+IC In-Class Example 4: Importing R script and translating it into python
+ - imported R script and translated it into python using inline copilot chat
+ - had to re-translate the code multiple times to get it to work properly
+ - realized we needed to install scipy package and struggled through activating workspace 
+    - was finally able to install scipy after restarting VS code and reopening bash terminal, and actually typing out the name of the environment 
+ - translated sections piece by piece and ran all code to ensure it was running smoothly   
