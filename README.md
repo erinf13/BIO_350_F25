@@ -52,3 +52,12 @@ IC In-Class Example 4: Importing R script and translating it into python
  - realized we needed to install scipy package and struggled through activating workspace 
     - was finally able to install scipy after restarting VS code and reopening bash terminal, and actually typing out the name of the environment 
  - translated sections piece by piece and ran all code to ensure it was running smoothly   
+
+IC Assignment 6: Intro to vectors, matrix multiplication (Chapters 11 and 12 of Ecology Handbook)
+ - create an algoritm that calculates the population of 3 ages of a beetle population and the total population over 150 years
+ - understand and define variables before coding ; type out parameters in markdown to ease process
+ - ensure variables are defined consistently throughout the code
+ - used numpy to create arrays and perform matrix multiplication
+ - got tripped up on indentation and variable names, need to be careful with these details ; don't rush through the code
+ - added a trap rate to account for 5% of beetles being caught in traps each year
+ - got confused a lot with inconsistent coding and getting left behind during instruction while trying to work through my issues
