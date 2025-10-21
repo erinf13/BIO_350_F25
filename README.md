@@ -61,3 +61,5 @@ IC Assignment 6: Intro to vectors, matrix multiplication (Chapters 11 and 12 of 
  - got tripped up on indentation and variable names, need to be careful with these details ; don't rush through the code
  - added a trap rate to account for 5% of beetles being caught in traps each year
  - got confused a lot with inconsistent coding and getting left behind during instruction while trying to work through my issues
+
+ IC In-class example 5: thursday
