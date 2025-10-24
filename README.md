@@ -62,4 +62,20 @@ IC Assignment 6: Intro to vectors, matrix multiplication (Chapters 11 and 12 of 
  - added a trap rate to account for 5% of beetles being caught in traps each year
  - got confused a lot with inconsistent coding and getting left behind during instruction while trying to work through my issues
 
- IC In-class example 5: thursday
+ IC In-class example 5: Real-life example of an age structured model in a population
+ - used ChatGPT to create an example population that includes age-structuring and how it grows over 50 years. 
+ - used suggested code from ChatGPT and edited it slightly to see different scenarios play out
+ - created two graphs to observe how the population would look after 50 years (for each age group) and one that showed the proportion of each age of the total population
+ - evaluated results by understanding what transient and stable behavior of the model was 
+
+ IC Assignment 7: Chapter 13 (Transition matrices) + Chapter 14 (metapopulation analysis and absorption)
+ - Chapter 13
+   - model how the composition of a forest changes as adult trees are replaced by saplings of different species 
+   - used a transition matrix and difference equations to model how the relative proportions of tree species changed over time as adult trees were replaced by saplings
+   - used a for loop with matrix multiplication to project the population over 50 years
+   - evaluated what the stationary/stable distribution of the population was and tested the probabilities of randomly selecting a specific tree
+- Chapter 14
+   - looked at a metapopulation of butterflies occupying two habitat patches and evaluated the probability of them going extinct from both patches within 50 years
+   - used a transition matrix and algebra to predict the state of the population over time as it transitions with colonization and population shifts
+   - created a line plot to visualize the extinction probability of the metapopulation (both patches)
+- overall : I took my time to organize the markdown instructions/information before jumping into the code to help my understanding of what the code is trying to achieve overall.
