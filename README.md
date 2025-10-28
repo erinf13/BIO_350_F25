@@ -79,3 +79,7 @@ IC Assignment 6: Intro to vectors, matrix multiplication (Chapters 11 and 12 of 
    - used a transition matrix and algebra to predict the state of the population over time as it transitions with colonization and population shifts
    - created a line plot to visualize the extinction probability of the metapopulation (both patches)
 - overall : I took my time to organize the markdown instructions/information before jumping into the code to help my understanding of what the code is trying to achieve overall.
+
+IC In-class example 6: negative binomial distribution with tardigrades
+- defined what negative binomial distributions are and applied it to an example I would understand
+- utilized the textbook, online resources, and ChatGPT to create a model population and example code to plot the distribution
