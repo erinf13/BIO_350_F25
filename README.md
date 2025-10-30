@@ -83,3 +83,7 @@ IC Assignment 6: Intro to vectors, matrix multiplication (Chapters 11 and 12 of 
 IC In-class example 6: negative binomial distribution with tardigrades
 - defined what negative binomial distributions are and applied it to an example I would understand
 - utilized the textbook, online resources, and ChatGPT to create a model population and example code to plot the distribution
+
+IC Assignment 8: single-variable probabilities
+- struggled through writing a program to predict outputs based on given probabilities (without the use of AI because I apparently used all of my free AI help)
+- realized python makes it seem a lot more complicated than if I were to do the math on my own in a calculator 
