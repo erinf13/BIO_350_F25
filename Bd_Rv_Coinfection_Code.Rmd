@@ -1,0 +1,597 @@
+---
+title: "Coinfection_Paper"
+author: "Evelyn Faust and Tamilie Carvalho"
+date: "2024-09-24"
+output: pdf_document
+---
+**Set up**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r clear environment}
+rm(list=ls())
+```
+
+```{r load packages}
+library(survival)
+library(survminer)
+library(multcomp)
+```
+
+```{r load data}
+ce_perfrog <- read.csv("ce_perfrog.csv")
+```
+
+
+**Survival**
+
+```{r survival}
+# Survival by unmodified death day
+deathday_model <- survfit(Surv(death_day,censor) ~ treatment, data = ce_perfrog)
+summary(deathday_model)
+
+# Survival POST-Bd
+postBd_model <- survfit(Surv(death_post_Bd,censor) ~ treatment, data = ce_perfrog)
+summary(postBd_model)
+```
+
+```{r survival post-hoc stats}
+survival <- survdiff(Surv(death_day, censor) ~ treatment, data=ce_perfrog)
+survival
+survival.p <- pairwise_survdiff(Surv(death_day, censor) ~ treatment, data=ce_perfrog)
+table_survival <- survival.p$p.value
+
+post_Bd <- ce_perfrog[ce_perfrog$treatment != "Rv",]
+surv_pBd <- survdiff(Surv(death_post_Bd, censor) ~ treatment, data=post_Bd)
+surv_pBd
+post_Bd_surv <- pairwise_survdiff(Surv(death_post_Bd, censor) ~ treatment, data=post_Bd)
+table_post_Bd_surv <- post_Bd_surv$p.value
+```
+
+**Body Condition**
+```{r create variables for body condition}
+d0_SMI_ctr <- ce_perfrog$fitness_d0[ce_perfrog$treatment == "ctr"]
+d0_SMI_Rv <- ce_perfrog$fitness_d0[ce_perfrog$treatment == "Rv"]
+d0_SMI_Bd <- ce_perfrog$fitness_d0[ce_perfrog$treatment == "Bd"] 
+d0_SMI_RvBd <- ce_perfrog$fitness_d0[ce_perfrog$treatment == "RvBd"]
+d0_SMI_BdRv <- ce_perfrog$fitness_d0[ce_perfrog$treatment == "BdRv"]
+d0_SMI_sim <- ce_perfrog$fitness_d0[ce_perfrog$treatment == "Bd+Rv"]
+
+d10_SMI_ctr <- ce_perfrog$fitness_d10[ce_perfrog$treatment == "ctr"]
+d10_SMI_Rv <- ce_perfrog$fitness_d10[ce_perfrog$treatment == "Rv"]
+d10_SMI_Bd <- ce_perfrog$fitness_d10[ce_perfrog$treatment == "Bd"] 
+d10_SMI_RvBd <- ce_perfrog$fitness_d10[ce_perfrog$treatment == "RvBd"]
+d10_SMI_BdRv <- ce_perfrog$fitness_d10[ce_perfrog$treatment == "BdRv"]
+d10_SMI_sim <- ce_perfrog$fitness_d10[ce_perfrog$treatment == "Bd+Rv"]
+
+end_SMI_ctr <- ce_perfrog$fitness_end[ce_perfrog$treatment == "ctr" & is.na(ce_perfrog$fitness_end)==F]
+end_SMI_Rv <- ce_perfrog$fitness_end[ce_perfrog$treatment == "Rv" & is.na(ce_perfrog$fitness_end)==F]
+end_SMI_Bd <- ce_perfrog$fitness_end[ce_perfrog$treatment == "Bd" & is.na(ce_perfrog$fitness_end)==F] 
+end_SMI_RvBd <- ce_perfrog$fitness_end[ce_perfrog$treatment == "RvBd" & is.na(ce_perfrog$fitness_end)==F]
+end_SMI_BdRv <- ce_perfrog$fitness_end[ce_perfrog$treatment == "BdRv" & is.na(ce_perfrog$fitness_end)==F]
+end_SMI_sim <- ce_perfrog$fitness_end[ce_perfrog$treatment == "Bd+Rv" & is.na(ce_perfrog$fitness_end)==F]
+
+
+```
+
+
+```{r endpoint body condition normality checks and correction}
+# normality checks for endpoint fitness data
+shapiro.test(end_SMI_ctr) #pass
+shapiro.test(end_SMI_Bd)  #pass
+shapiro.test(end_SMI_BdRv)  #pass
+shapiro.test(end_SMI_sim) #fail
+shapiro.test(log(end_SMI_sim))  #fail
+shapiro.test(end_SMI_RvBd)  #fail
+shapiro.test(log(end_SMI_RvBd)) #fail
+shapiro.test(end_SMI_Rv)  #pass
+
+# the sim and RvBd groups failed normality even after log transformation
+# it seems there is one outlier in each of these groups that is pulling the distribution, so I will remove and see what happens
+end_SMI_sim <- sort(end_SMI_sim)
+end_SMI_sim <- end_SMI_sim[2:length(end_SMI_sim)]
+shapiro.test(end_SMI_sim)
+  # now it passes
+end_SMI_RvBd <- sort(end_SMI_RvBd)
+end_SMI_RvBd <- end_SMI_RvBd[1:6]
+shapiro.test(end_SMI_RvBd)
+  # now it passes
+
+# convert treatment to factor
+ce_perfrog$treatment <- factor(ce_perfrog$treatment)
+
+# remove aforementioned outliers from the dataset for the anova
+min <- min(ce_perfrog$fitness_end[ce_perfrog$treatment == "Bd+Rv" & is.na(ce_perfrog$fitness_end) == F])
+which(ce_perfrog$fitness_end == min)  # 2
+which(colnames(ce_perfrog) == "fitness_end") # 11
+ce_perfrog_FIT <- ce_perfrog
+ce_perfrog_FIT[2,11] <- NA
+
+max <- max(ce_perfrog$fitness_end[ce_perfrog$treatment == "RvBd" & is.na(ce_perfrog$fitness_end) == F])
+which(ce_perfrog$fitness_end == max)  # 7
+ce_perfrog_FIT[7,11] <- NA
+
+```
+
+```{r endpoint body condition anova and post hoc}
+fitness_end_aov <- aov(fitness_end ~ treatment, data=ce_perfrog_FIT)
+summary(fitness_end_aov)
+TukeyHSD(fitness_end_aov)
+summary(glht(fitness_end_aov, linfct = mcp(treatment = "Tukey")))
+# there was a significant difference overall (0.0433), but...
+# neither TukeyHSD nor glht return any significant differences in pairwise comparisons, although some are close (RvBd - ctr and RvBd - Rv around 0.06)
+# I also tried wihout removing the outliers for normality, and there were still no differences
+```
+
+
+```{r d10 body condition stats}
+# d10 second >>>>
+# normality checks for endpoint fitness data
+shapiro.test(d10_SMI_ctr) #pass
+shapiro.test(d10_SMI_Bd)  #pass
+shapiro.test(d10_SMI_BdRv)  #pass
+shapiro.test(d10_SMI_sim) #pass
+shapiro.test(d10_SMI_RvBd)  #pass
+shapiro.test(d10_SMI_Rv)  #pass
+
+# one-way anova
+fitness_d10_aov <- aov(fitness_d10 ~ treatment, data=ce_perfrog)
+summary(fitness_d10_aov)
+TukeyHSD(fitness_d10_aov)
+summary(glht(fitness_d10_aov, linfct = mcp(treatment = "Tukey")))
+
+# no difference overall (0.309) and neither TukeyHSD nor glht return any significant differences in pairwise comparisons
+
+```
+
+```{r d0 body condition stats}
+# d0 last >>>>
+# normality checks for endpoint fitness data
+shapiro.test(d0_SMI_ctr) #pass
+shapiro.test(d0_SMI_Bd)  #pass
+shapiro.test(d0_SMI_BdRv)  #pass
+shapiro.test(d0_SMI_sim) #pass
+shapiro.test(d0_SMI_RvBd)  #pass
+shapiro.test(d0_SMI_Rv)  #pass
+
+# one-way anova
+fitness_d0_aov <- aov(fitness_d0 ~ treatment, data=ce_perfrog)
+summary(fitness_d0_aov)
+TukeyHSD(fitness_d0_aov)
+summary(glht(fitness_d0_aov, linfct = mcp(treatment = "Tukey")))
+
+# no difference overall (0.165) and neither TukeyHSD nor glht return any significant differences in pairwise comparisons
+```
+
+**Load Analysis**
+
+
+```{r prep vectors}
+
+d10_Bd_Bd <- ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd"] 
+d.20_Bd_RvBd <- ce_perfrog$Bd_d20[ce_perfrog$treatment == "RvBd" & is.na(ce_perfrog$Bd_d20) == F]
+d10_Bd_BdRv <- ce_perfrog$Bd_d10[ce_perfrog$treatment == "BdRv"]
+d10_Bd_sim <- ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd+Rv"]
+
+end_Bd_Bd <- ce_perfrog$Bd_end[ce_perfrog$treatment == "Bd"] 
+end_Bd_RvBd <- ce_perfrog$Bd_end[ce_perfrog$treatment == "RvBd" & is.na(ce_perfrog$Bd_end) == F]
+end_Bd_BdRv <- ce_perfrog$Bd_end[ce_perfrog$treatment == "BdRv"]
+end_Bd_sim <- ce_perfrog$Bd_end[ce_perfrog$treatment == "Bd+Rv"]
+
+d10_Rv_Rv <- ce_perfrog$Rv_d10[ce_perfrog$treatment == "Rv"] 
+d10_Rv_RvBd <- ce_perfrog$Rv_d10[ce_perfrog$treatment == "RvBd"]
+d10_Rv_sim <- ce_perfrog$Rv_d10[ce_perfrog$treatment == "Bd+Rv"]
+d10_Rv_BdRv <- ce_perfrog$Rv_d10[ce_perfrog$treatment == "BdRv"]
+
+end_Rv_Rv <- ce_perfrog$Rv_end[ce_perfrog$treatment == "Rv"] 
+end_Rv_RvBd <- ce_perfrog$Rv_end[ce_perfrog$treatment == "RvBd" & is.na(ce_perfrog$Rv_end) == F]
+end_Rv_sim <- ce_perfrog$Rv_end[ce_perfrog$treatment == "Bd+Rv"]
+end_Rv_BdRv <- ce_perfrog$Rv_end[ce_perfrog$treatment == "BdRv"]
+
+```
+
+
+```{r impute zero values in Rv loads for log transformation}
+# need to impute zero values with a nonzero constant for log-transformation
+for(ii in 1:length(ce_perfrog$Rv_d10)){
+  if(is.na(ce_perfrog$Rv_d10[ii])==F & ce_perfrog$Rv_d10[ii] == 0){
+    ce_perfrog$Rv_d10[ii] <- 0.4
+  }
+  if(is.na(ce_perfrog$Rv_end[ii])==F & ce_perfrog$Rv_end[ii] == 0){
+    ce_perfrog$Rv_end[ii] <- 0.4
+  }
+}
+for(ii in 1:length(ce_perfrog$Bd_end)){
+  if(is.na(ce_perfrog$Bd_end[ii])==F & ce_perfrog$Bd_end[ii] == 0){
+    ce_perfrog$Bd_end[ii] <- 0.4
+  }
+  if(is.na(ce_perfrog$Bd_end[ii])==F & ce_perfrog$Bd_end[ii] == 0){
+    ce_perfrog$Bd_end[ii] <- 0.4
+  }
+}
+
+```
+
+
+
+```{r load stats assumptions}
+# load stats
+# testing normality (log transformed for all)
+
+# check for long-tail distribution before log transforming
+hist(ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd"])
+shapiro.test(log(ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd"])) #pass
+shapiro.test(log(ce_perfrog$Bd_end[ce_perfrog$treatment == "Bd"])) #pass
+shapiro.test(log(ce_perfrog$Bd_d10[ce_perfrog$treatment == "BdRv"])) #pass
+shapiro.test(log(ce_perfrog$Bd_end[ce_perfrog$treatment == "BdRv"])) #pass
+shapiro.test(log(ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd+Rv"])) #pass
+shapiro.test(log(ce_perfrog$Bd_end[ce_perfrog$treatment == "Bd+Rv"])) #pass
+  shapiro.test(log(ce_perfrog$Bd_d20[ce_perfrog$treatment == "RvBd"])) #pass
+  shapiro.test(log(ce_perfrog$Bd_end[ce_perfrog$treatment == "RvBd"])) #pass
+  
+# ... continuing normality tests 
+shapiro.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "Rv"])) #pass
+shapiro.test(log(ce_perfrog$Rv_end[ce_perfrog$treatment == "Rv"])) #fail - probably because a lot of low values
+shapiro.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "RvBd"])) #pass
+shapiro.test(log(ce_perfrog$Rv_end[ce_perfrog$treatment == "RvBd"])) #pass
+shapiro.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "Bd+Rv"])) #pass
+shapiro.test(log(ce_perfrog$Rv_end[ce_perfrog$treatment == "Bd+Rv"])) #fail - probably because a lot of low values
+  shapiro.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "BdRv"])) #pass
+  # no one lived to d20: shapiro.test(log(ce_perfrog$Rv_d20[ce_perfrog$treatment == "BdRv"]))
+  shapiro.test(log(ce_perfrog$Rv_end[ce_perfrog$treatment == "BdRv"])) #pass
+
+```
+
+
+```{r prep datasets for Bd load analyses}
+# for one way anovas
+  # for the following analyses, let's put the d20 Bd load for the RvBd group as the d10 Bd load (post exposure)
+  # I would put the d20 Rv load for the BdRv group as the d10 Rv load (post exposure), but none survived to day 20
+  # also removed irrelevant groups for Bd comparison
+ce_perfrog_LOAD <- ce_perfrog
+ce_perfrog_LOAD$Bd_d10[ce_perfrog_LOAD$treatment == "RvBd"] <- ce_perfrog_LOAD$Bd_d20[ce_perfrog_LOAD$treatment == "RvBd"]
+ce_perfrog_LOADX <- ce_perfrog_LOAD[ce_perfrog_LOAD$treatment != "Rv" & ce_perfrog_LOAD$treatment != "ctr",]
+
+```
+
+```{r d10 Bd load - Anova and Tukeys post hoc}
+# differences in Bd load on day 10 (post Bd exposure) 
+Bd_d10_aov <- aov(log(Bd_d10) ~ treatment, data=ce_perfrog_LOADX)
+summary(Bd_d10_aov) 
+  # indicates overall difference in d10 load by treatment, p = 1.08e-8
+tukey_summary <- TukeyHSD(Bd_d10_aov)
+tukey_results <- tukey_summary$treatment
+comparisons <- rownames(tukey_results)
+mean_diff <- tukey_results[, "diff"]
+lower_ci <- tukey_results[, "lwr"]
+upper_ci <- tukey_results[, "upr"]
+p_adj <- tukey_results[, "p adj"]
+comparison_groups <- strsplit(comparisons, "-")
+group1 <- sapply(comparison_groups, `[`, 1)
+group2 <- sapply(comparison_groups, `[`, 2)
+tukey_table <- data.frame(
+  Group1 = group1,
+  Group2 = group2,
+  Mean_Difference = mean_diff,
+  Lower_CI = lower_ci,
+  Upper_CI = upper_ci,
+  P_Adj = p_adj
+)
+
+summary(glht(Bd_d10_aov, linfct = mcp(treatment = "Tukey")))
+# confirmed comparisons using glht multiple hypothesis testing
+```
+
+
+```{r endpoint Bd load - Anova and Tukeys post hoc}
+Bd_end_aov <- aov(log(Bd_end) ~ treatment, data=ce_perfrog)
+summary(Bd_end_aov)
+# indicates overall difference in endpt load by treatment, p < 2e-16
+tukey_summary <- TukeyHSD(Bd_end_aov)
+tukey_results <- tukey_summary$treatment
+comparisons <- rownames(tukey_results)
+mean_diff <- tukey_results[, "diff"]
+lower_ci <- tukey_results[, "lwr"]
+upper_ci <- tukey_results[, "upr"]
+p_adj <- tukey_results[, "p adj"]
+comparison_groups <- strsplit(comparisons, "-")
+group1 <- sapply(comparison_groups, `[`, 1)
+group2 <- sapply(comparison_groups, `[`, 2)
+tukey_table <- data.frame(
+  Group1 = group1,
+  Group2 = group2,
+  Mean_Difference = mean_diff,
+  Lower_CI = lower_ci,
+  Upper_CI = upper_ci,
+  P_Adj = p_adj
+)
+
+summary(glht(Bd_end_aov, linfct = mcp(treatment = "Tukey")))
+# confirmed comparisons using glht multiple hypothesis testing
+# except p<1e-4 for all ctr comparisons
+```
+
+```{r d10 Rv load - Anova and Tukeys post hoc}
+
+ce_perfrogY <- ce_perfrog[ce_perfrog$treatment != 'BdRv',]
+# because they died too soon
+
+# differences in Rv load day 10
+Rv_d10_aov <- aov(log(Rv_d10) ~ treatment, data=ce_perfrogY)
+summary(Rv_d10_aov) 
+
+tukey_summary <- TukeyHSD(Rv_d10_aov)
+tukey_results <- tukey_summary$treatment
+comparisons <- rownames(tukey_results)
+mean_diff <- tukey_results[, "diff"]
+lower_ci <- tukey_results[, "lwr"]
+upper_ci <- tukey_results[, "upr"]
+p_adj <- tukey_results[, "p adj"]
+comparison_groups <- strsplit(comparisons, "-")
+group1 <- sapply(comparison_groups, `[`, 1)
+group2 <- sapply(comparison_groups, `[`, 2)
+tukey_table <- data.frame(
+  Group1 = group1,
+  Group2 = group2,
+  Mean_Difference = mean_diff,
+  Lower_CI = lower_ci,
+  Upper_CI = upper_ci,
+  P_Adj = p_adj
+)
+
+# make sure to exclude comparisons with BdRv (d10 is really d0 post Rv-exposure for this group, but none of them made it to d20/d10 post Rv-exposure)
+summary(glht(Rv_d10_aov, linfct = mcp(treatment = "Tukey")))
+# confirmed comparisons using glht multiple hypothesis testing
+```
+
+
+```{r endpoint Rv load - Anova and Tukeys post hoc}
+Rv_end_aov <- aov(log(Rv_end) ~ treatment, data=ce_perfrog)
+summary(Rv_end_aov) 
+# indicates no overall differences in endpt load by treatment, p = 0.177
+tukey_summary <- TukeyHSD(Rv_end_aov)
+tukey_results <- tukey_summary$treatment
+comparisons <- rownames(tukey_results)
+mean_diff <- tukey_results[, "diff"]
+lower_ci <- tukey_results[, "lwr"]
+upper_ci <- tukey_results[, "upr"]
+p_adj <- tukey_results[, "p adj"]
+comparison_groups <- strsplit(comparisons, "-")
+group1 <- sapply(comparison_groups, `[`, 1)
+group2 <- sapply(comparison_groups, `[`, 2)
+tukey_table <- data.frame(
+  Group1 = group1,
+  Group2 = group2,
+  Mean_Difference = mean_diff,
+  Lower_CI = lower_ci,
+  Upper_CI = upper_ci,
+  P_Adj = p_adj
+)
+
+summary(glht(Rv_end_aov, linfct = mcp(treatment = "Tukey")))
+# confirmed comparisons using glht multiple hypothesis testing
+```
+```{r load difference between timepoints - T tests}
+# within each treatment group, difference between timepoints (d10 and endpt)
+# Bd group: Bd load (p = 0.00162, CI=-2.653,-0.862) --SIGNIFICANT
+t.test(log(ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd"]), 
+       log(ce_perfrog$Bd_end[ce_perfrog$treatment == "Bd"]),
+       paired = TRUE)
+
+# Bd->Rv group: Bd load (p = 0.7013, CI=-1.523,1.083)
+t.test(log(ce_perfrog$Bd_d10[ce_perfrog$treatment == "BdRv"]), 
+       log(ce_perfrog$Bd_end[ce_perfrog$treatment == "BdRv"]),
+       paired = TRUE)
+
+# BdRv group: Bd load (p = 0.00726, CI=-7.032,-1.584) --SIGNIFICANT
+t.test(log(ce_perfrog$Bd_d10[ce_perfrog$treatment == "Bd+Rv"]), 
+       log(ce_perfrog$Bd_end[ce_perfrog$treatment == "Bd+Rv"]),
+       paired = TRUE)
+
+# Rv->Bd group: Bd load (p = 0.1143, CI=-3.986,0.720) 
+t.test(log(ce_perfrog$Bd_d20[ce_perfrog$treatment == "RvBd"]), 
+       log(ce_perfrog$Bd_end[ce_perfrog$treatment == "RvBd"]),
+       paired = TRUE)
+
+# Rv group: Rv load (p = 0.244, CI=-1.713,5.822)
+t.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "Rv"]), 
+       log(ce_perfrog$Rv_end[ce_perfrog$treatment == "Rv"]),
+       paired = TRUE)
+
+# Rv->Bd group: Rv load (p = 0.400, CI=-3.150,6.848)
+t.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "RvBd"]), 
+       log(ce_perfrog$Rv_end[ce_perfrog$treatment == "RvBd"]),
+       paired = TRUE)
+
+# BdRv group: Rv load (p = 0.509, CI=-3.1823,5.833)
+t.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "Bd+Rv"]), 
+       log(ce_perfrog$Rv_end[ce_perfrog$treatment == "Bd+Rv"]),
+       paired = TRUE)
+
+# Bd->Rv group: Rv load (p = 0.00213, CI=-6.406,-2.138) -- SIGNIFICANT
+t.test(log(ce_perfrog$Rv_d10[ce_perfrog$treatment == "BdRv"]), 
+       log(ce_perfrog$Rv_end[ce_perfrog$treatment == "BdRv"]),
+       paired = TRUE)
+
+```
+
+*Plotting*
+
+```{r set colors}
+black <- "#000000"
+blue <- "#2EB4FF"
+green <- "#009E73"
+maroon <- "#8C1457"
+purple <- "#9858EC"
+orange <- "#FF7F0A"
+```
+
+```{r survival since first exposure}
+deathday_model <- survfit(Surv(death_day,censor) ~ treatment, data = ce_perfrog)
+end <- 34
+quartz.options(height=6, width=6)
+par(mar=c(4,4.5,3,1), oma=c(1,1,1,1))
+plot.new()
+plot(deathday_model, col=c("#2EB4FF","#8C1457","#009E73","#000000","#FF7F0A","#9858EC"), 
+     lty = c(1,1,1,2,1,1), conf.int=F,lwd=c(2,2,2,1,2,2),
+     xaxp = c(0,end,end/2),
+     xlab="Time (days after 1st exposure)", 
+     ylab="Survival Probability", las=1, 
+     cex.lab=1.2,
+     main = "Survival Probability by Group",
+     cex.main=1.5)
+
+legend(0.2,0.5, legend=c("control","Bd","Bd → Rv*","BdRv","Rv → Bd*", "Rv"),lty = c(2,1,1,1,1,1), lwd=c(1,2,2,2,2,2),col=c("#000000","#2EB4FF","#009E73","#8C1457","#9858EC","#FF7F0A"), bty="n", cex=1.2)
+text(x=7,y=0.02,labels="*1st exposure (day 0) → 2nd exposure (day 10)",cex=0.6)
+text(x=c(14,18), y=0.15,labels="a",cex=1.2)
+text(x=c(22,26), y=c(0.1,0.18),labels="b",cex=1.2)
+text(x=c(30,31), y=c(0.95,0.8),labels="c",cex=1.2)
+text(x=c(30,31), y=c(0.95,0.8),labels="c",cex=1.2)
+text(x=29, y=0.5,labels="p < 0.002",cex=1.2)
+```
+
+```{r post Bd survival}
+postBd_model <- survfit(Surv(death_post_Bd,censor) ~ treatment, data = ce_perfrog)
+quartz.options(height=6, width=6)
+par(mar=c(4,4.5,3,1), oma=c(1,1,1,1))
+plot.new()
+plot(postBd_model, col=c("#2EB4FF","#8C1457","#009E73","#000000","#9858EC"), 
+     lty = c(1,1,1,2,1), conf.int=F,lwd=c(2,2,2,1,2),
+     xaxp = c(0,end,end/2),
+     xlab="Time (days after Bd exposure)", 
+     ylab="Survival Probability", las=1, 
+     cex.lab=1.2,
+     #main = "Survival - Post Bd Exposure",
+     cex.main=1.5)
+
+legend(23,0.9, legend=c("control","Bd","Bd → Rv","BdRv","Rv → Bd"),lty = c(2,1,1,1,1), lwd=c(1,2,2,2,2),col=c("#000000","#2EB4FF","#009E73","#8C1457","#9858EC"), bty="n", cex=1.2)
+# text(x=29,y=0.45,labels="*1st exposure → 2nd exposure",cex=0.7)
+text(x=11.5, y=0.1,labels="a",cex=1.2)
+text(x=c(15,18), y=0.05,labels="b",cex=1.2)
+text(x=21.5, y=0.2,labels="c",cex=1.2)
+text(x=20, y=0.95,labels="d",cex=1.2)
+text(x=3, y=0.1,labels="p < 0.004",cex=1.2)
+```
+
+```{r plot fitness by timepoint and treatment group}
+data_list <- list(#d0_SMI_ctr,d0_SMI_Rv,d0_SMI_RvBd,d0_SMI_sim,d0_SMI_BdRv,d0_SMI_Bd,
+                  d10_SMI_ctr,d10_SMI_Rv,d10_SMI_RvBd,d10_SMI_sim,d10_SMI_BdRv,
+                  d10_SMI_Bd,
+                  end_SMI_ctr,end_SMI_Rv,end_SMI_RvBd,end_SMI_sim,end_SMI_BdRv,
+                  end_SMI_Bd)
+boxplot(data_list,at=c(1:6,8:13),
+        ylim=c(0.9,1.45),
+        ylab="Scaled Mass Index (g)",
+        axes = FALSE, cex.lab=1.2,
+        main="Fitness by Timepoint and Treatment Group",
+        # names=c("ctr","Rv","Rv→Bd","Bd+Rv","Bd→Rv"),
+        col=rep(c("grey",orange,purple,maroon,green,blue),2))
+box()
+axis(1, at = c(3.5,10.5), labels = c("day 10","endpoint/TOD"), tick = FALSE, cex.axis =1.2)
+axis(2)
+abline(v=c(7,14))
+legend(1,1.47,legend=c("ctr","Rv", "Rv → Bd", "BdRv","Bd → Rv","Bd"),
+                       pch=21,col=c("grey",orange,purple,maroon,green,blue),
+                        pt.bg=c("grey",orange,purple,maroon,green,blue), cex=0.8, bty='n')
+
+```
+
+
+```{r Bd establishment}
+par(mar = c(2, 6, 2, 2))
+boxplot(d10_Bd_Bd, d10_Bd_BdRv, d10_Bd_sim, d.20_Bd_RvBd,
+        ylim=c(80,200000),
+        log = "y",
+        ylab="Bd Load (zoospore eqivalents)\n10 Days Post-Exposure",
+        #xlab="Treatment Group",
+        axes = FALSE, cex.lab=1.2,
+        #main="Bd Establishment\n10 Days Post-Exposure",
+        col=c(blue,green,maroon,purple))
+box()
+axis(1, at = 1:4, labels = c("Bd","Bd→Rv","BdRv","Rv→Bd"), cex.axis =1.2)
+axis(2)
+text(x=c(1,2,3,4),y=c(2000,2000,6000,6000),label=c("a","a","b","a"),cex=1.2)
+text(x=1,y=200,label="p = 0.001",cex=1)
+```
+
+
+```{r Bd load by lifespan}
+
+
+end_Bd_simmm <- sort(end_Bd_sim)
+end_Bd_simmm <- end_Bd_simmm[2:(length(end_Bd_simmm)-2)]
+# had to remove a couple of outliers from the sim group
+
+end_Bd <- c(mean(end_Bd_Bd),mean(end_Bd_BdRv),mean(end_Bd_simmm),mean(end_Bd_RvBd))
+sd_endBd <- c(sd(end_Bd_Bd),sd(end_Bd_BdRv),sd(end_Bd_simmm),sd(end_Bd_RvBd))
+
+# Endpoint Bd by duration since EXPOSURE
+plife_ctr <- mean(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "ctr"])
+plife_Rv <- mean(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "Rv"])
+plife_RvBd <- mean(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "RvBd"])
+plife_sim <- mean(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "Bd+Rv"])
+plife_BdRv <- mean(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "BdRv"])
+plife_Bd <- mean(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "Bd"])
+
+x_vals <- c(plife_Bd, plife_BdRv, plife_sim, plife_RvBd)
+sd_xvals <- c(sd(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "Bd"]),
+              sd(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "BdRv"]),
+              sd(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "BdRv"]),
+              sd(ce_perfrog$death_post_Bd[ce_perfrog$treatment == "RvBd"]))
+
+par(mar=c(4,6,2,2))
+plot(x=x_vals,y=end_Bd,
+     xlim=c(7,21), ylim=c(4000,400000), 	
+     col=c(blue,green,maroon,purple),pch=16,cex=2,
+     axes=FALSE,
+     ylab="Mean Bd Load at Time of Death\n(zoospore equivalents)",
+     xlab = "host lifespan (mean days post Bd exposure)",
+     #main= "Bd Load at Time of Death\nby Post-Exposure Lifespan",
+     cex.lab = 1.2,
+     cex.main = 1.5)
+box()
+axis(2)
+axis(1, at = seq(7,21, by = 1), cex.axis =1.2)
+arrows(x0=x_vals, y0=(end_Bd + sd_endBd),
+       x1=x_vals, y1=(end_Bd - sd_endBd),
+       code=3,angle=90,length=0.05,
+       col=c(blue,green,maroon,purple))
+arrows(x0=(x_vals - sd_xvals), y0=end_Bd,
+       x1=(x_vals + sd_xvals), y1=end_Bd,
+       code=3,angle=90,length=0.05,
+       col=c(blue,green,maroon,purple))
+text(x=c(11,13.5,15.2,18.5),y=c(250000,120000,120000,100000),label=c("a","b","b","c"),cex=1.2)
+legend(17,380000,legend=c("Bd","Bd → Rv","BdRv","Rv → Bd"),
+       pch=21,col=c(blue,green,maroon,purple), pt.bg=c(blue,green,maroon,purple),cex=1.2)
+
+
+```
+
+
+```{r Rv load progression}
+data_list <- list(d10_Rv_Rv*40,end_Rv_Rv*40,
+                  d10_Rv_RvBd*40,end_Rv_RvBd*40,
+                  d10_Rv_sim*40,end_Rv_sim*40,
+                  end_Rv_BdRv*40)
+boxplot(data_list,at=c(1:2,4:5,7:8,10),
+        ylim=c(0.2,4600000)*40,
+        log = "y",
+        ylab="Rv Load (MCP gene copies)",
+        xlab="Timepoints",
+        axes = FALSE, cex.lab=1.2,
+        main="Rv Load Progression",
+        col=c(rep(orange,2),rep(purple,2),rep(maroon,2),green))
+box()
+axis(1, at = c(1:2,4:5,7:8,10), labels =c("d10","TOD/End",rep(c("d10","TOD"),2),"TOD"), cex.axis =1)
+axis(2)
+legend(8.5,5000000*40,legend=c("Rv","Rv → Bd","BdRv","Bd → Rv"),
+       pch=21,pt.bg=c(orange,purple,maroon,green),cex=1.2)
+
+
+```
+
+
+
+
