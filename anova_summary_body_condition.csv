@@ -1,0 +1,4 @@
+Timepoint,F-value,p-value,Significant (p<0.05)
+Day 0,1.6507129304678476,0.1653,False
+Day 10,1.2330141560092993,0.3088,False
+End,2.573582835289126,0.0433,True
